@@ -229,11 +229,8 @@ addEventListener('keydown', (e) => {
     if (!gameover) {  
         keyHolds.forEach((key, keyIndex) => {
             switch(key) {
-                case 'Space': {
-                    setTimeout(() => {
-                        createProjectile(player, 5, 4)
-
-                    }, 1000)
+                case 'Space': { 
+                    createProjectile(player, 5, 4)
                     break
                 }
                 case 'ArrowRight':
