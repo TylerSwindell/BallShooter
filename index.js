@@ -12,6 +12,7 @@ const BLACK50 = 'rgba(0, 0, 0, 0.5)'
 
 // Play area setup
 const canvas = document.querySelector('canvas')
+const canvasMargins = 50
 
 // Specify rendering style
 const ctx = canvas.getContext('2d');
@@ -28,7 +29,19 @@ let mouseCoords = {
 }
 
 // Player Config
-const player = new Player(midX, midY, 20, 'red');
+const playerConfig = {
+    x: midX,
+    y: midY,
+}
+
+const player = new Player(playerConfig);
+
+// Main animation loop iterations
+let microTicks = 1
+// Base Level Games Ticks
+let curentGameTick = 1
+// Frames Per Tick
+const FPT = 25
 
 // Array where projectiles are stored
 const projectiles = []
@@ -41,19 +54,17 @@ let gameover = false;
 // Scoring render
 function drawScoring() {
 
-    const margins = 50
-
     ctx.font = '25px sans-serif';
-
     const scoreText = `Score: ${player.killCount}`   
     const scoreWidth = ctx.measureText(scoreText).width
 
     const score = {
         text: scoreText, 
-        x: 0 + margins, 
-        y: 0 + margins, 
+        x: 0 + canvasMargins, 
+        y: 0 + canvasMargins, 
         color: WHITE
     }
+
     ctx.fillStyle = score.color
     ctx.fillText(scoreText, score.x, score.y);
     
@@ -62,14 +73,13 @@ function drawScoring() {
 
     const shots = { 
         text: shotsText, 
-        x: cWidth - shotsTextWidth - margins, 
-        y: 0 + margins, 
+        x: cWidth - shotsTextWidth - canvasMargins, 
+        y: 0 + canvasMargins, 
         color: WHITE
     }
     ctx.fillStyle = shots.color
     ctx.fillText(shotsText, shots.x, shots.y);
-  }
-
+}
 
 function spawnEnemies() {
     let spawnFrequency = 1000
@@ -104,29 +114,134 @@ function spawnEnemies() {
 
 const getRandomRange = (min, max) => Math.random() * (max - min) + min
 
-// Main Animation Loop
-let animationId
-const animate = (loop = true) => {
-    if (loop) animationId = requestAnimationFrame(animate)
+function createProjectile(origin, size, speed) {
+    const angle = Math.atan2(
+        mouseCoords.y - origin.y, 
+        mouseCoords.x - origin.x
+    )
+    const velocity = {
+        x: Math.cos(angle) * speed, 
+        y: Math.sin(angle) * speed
+    }
+    const projectileSize = size
 
-    ctx.fillStyle = (loop) ? BLACK30 : BLACK
+    projectiles.push( new Projectile( origin.x, origin.y, projectileSize, 'white', velocity) );            
+    if (origin.numberOfProjectiles !== undefined) origin.numberOfProjectiles++
+}
 
+addEventListener('click', (e) => { 
+    player.lastFire = curentGameTick
+    if (player.readyToFire) createProjectile(player, 5, 10)
+})
+
+window.addEventListener('resize', (e) => {
+    e.preventDefault()
+    cWidth = canvas.width = innerWidth
+    cHeight = canvas.height = innerHeight
+    animate(false);
+})
+
+addEventListener('mousemove', (e) => {
+    mouseCoords = { 
+        x: e.clientX, 
+        y: e.clientY 
+    }
+})
+
+addEventListener('keydown', (e) => {
+    const key = e.code
+
+    if (!gameover) {  
+        switch(key) {
+            case 'Space': {
+                e.preventDefault()
+                player.keysDown.space = true
+            } break
+            case 'KeyW': player.keysDown.w = true; break
+            case 'KeyA': player.keysDown.a = true; break
+            case 'KeyS': player.keysDown.s = true; break
+            case 'KeyD': player.keysDown.d = true; break
+            default:
+                break
+        }
+    } 
+})
+
+addEventListener('keyup', (e) => {
+    const key = e.code
+
+    player.lastKeyPressed = key;
+
+    if (!gameover) {  
+        switch(key) {
+            case 'Space': player.keysDown.space = false                    
+                break
+            case 'KeyW': player.keysDown.w = false; break
+            case 'KeyA': player.keysDown.a = false; break
+            case 'KeyS': player.keysDown.s = false; break
+            case 'KeyD': player.keysDown.d = false; break
+            default:
+                break
+        }
+    } 
+})
+
+const tickEngine = () => {
+    if (microTicks >= FPT) {
+        microTicks = 0
+        curentGameTick++
+    }
+    if (microTicks === 0) 
+        player.readyToFire = true
+
+    microTicks++
+
+    console.log('Micro:', microTicks)
+    console.log('Ticks:', curentGameTick)
+}
+
+const redrawBackground = (looping) => {
+    ctx.fillStyle = (looping) ? BLACK30 : BLACK
     ctx.fillRect(0, 0, cWidth, cHeight)
+}
 
-    projectiles.forEach((projectile, i) => {
-        projectile.update(ctx)
+const playerControls = () => {
+    // Setup W A S D Keys to move playerd
+    // X Axis
+    if (player.keysDown.a) player.x -= player.speed
+    if (player.keysDown.d) player.x += player.speed
+
+    // Y Axis
+    if (player.keysDown.w) player.y -= player.speed
+    if (player.keysDown.s) player.y += player.speed
+
+
+    // Setup Space key to fire 
+    player.readyToFire = (curentGameTick > player.lastFire ) ? true : false
+    if (player.keysDown.space) {
+        player.lastFire = curentGameTick
+        if (player.readyToFire) createProjectile(player, 5, 10 )
+    }
+
+    player.update(ctx)
+}
+
+const screenEdgeDetection = (entities, canvasWidth, canvasHeight) => {
+    entities.forEach((ent, i) => {
+        ent.update(ctx)
 
         // Remove projectiles from edge of screen
-        if ((projectile.x - projectile.radius < 0 || 
-                projectile.x + projectile.radius > cWidth) ||
-            (projectile.y - projectile.radius < 0 || 
-                projectile.y + projectile.radius > cHeight)) 
+        if ((ent.x - ent.radius < -100 || 
+                ent.x + ent.radius > canvasWidth) ||
+            (ent.y - ent.radius < -100 || 
+                ent.y + ent.radius > canvasHeight)) 
             setTimeout(() => {
-                projectiles.splice(i, 1)
+                entities.splice(i, 1)
             }, 0)
     })
+}
 
-
+const enemyManager = (enemies) => {
     enemies.forEach((enemy, enemyIndex) => {
         enemy.update(ctx)
 
@@ -147,122 +262,39 @@ const animate = (loop = true) => {
 
                 // Checks if the radius of a projectile hits the enemy radius
                 if (dist - (projectile.radius*.9) - (enemy.radius*.9) < 1) {
+                    enemy.radius -= player.damage
+                    if (enemy.radius < 10) enemies.splice(enemyIndex, 1)
 
                     // Prevents an attempted redraw that causes flashing elements
                     setTimeout(() => {
-                        enemies.splice(enemyIndex, 1)
+                        //enemies.splice(enemyIndex, 1)
                         projectiles.splice(projectileIndex, 1);
                         player.killCount++
                     })
                 }
             })
-            // Remove projectiles from edge of screen
-            if ((enemy.x < -100 || 
-                enemy.x > cWidth+100) ||
-            (enemy.y < -100 || 
-                enemy.y > cHeight + 100)) 
-            setTimeout(() => {
-                enemies.splice(enemyIndex, 1)
-            }, 0)
-
         }
     })
-    player.update(ctx, 0, 0)
+}
+
+// Main Animation Loop
+let animationId
+const animate = (looping = true) => {
+    if (looping) animationId = requestAnimationFrame(animate)
+
+    tickEngine()
+    redrawBackground(looping)
+
+    playerControls()
+
+    screenEdgeDetection(projectiles, cWidth, cHeight)
+    screenEdgeDetection(enemies, cWidth+100, cHeight+100)
+
+    enemyManager(enemies)
+    
     drawScoring()
 
 }
-
-function createProjectile(origin, size, speed) {
-    const angle = Math.atan2(
-        mouseCoords.y - origin.y, 
-        mouseCoords.x - origin.x
-    )
-    const velocity = {
-        x: Math.cos(angle) * speed, 
-        y: Math.sin(angle) * speed
-    }
-    const projectileSize = size
-
-    projectiles.push( new Projectile( origin.x, origin.y, projectileSize, 'white', velocity) );            
-    if (origin.numberOfProjectiles !== undefined) origin.numberOfProjectiles++
-}
-
-addEventListener('click', (e) => createProjectile(player, 5, 10))
-
-window.addEventListener('resize', (e) => {
-    e.preventDefault()
-    cWidth = canvas.width = innerWidth
-    cHeight = canvas.height = innerHeight
-    animate(false);
-})
-
-addEventListener('mousemove', (e) => {
-    mouseCoords = {x: e.clientX, y: e.clientY}
-})
-
-/* TODO:
- * Create datastructure which remembers which key was pressed until it is lifted.
- * This will be the basis of movement in the game. Currently if I press 'D' while
- * holding 'W' the 'W' long hold is canceled.
- * 
- * Use: 'keydown' for true
- * Use: 'keyup' for false
- * 
- * 
- */
-
-let keyHolds = []
-let action;
-
-
-
-const playerSpeed = 5;
-
-addEventListener('keydown', (e) => {
-
-    if (!keyHolds.includes(e.code)) keyHolds.push(e.code)
-    console.log(e.code, 'down', keyHolds)
-
-    let moveX = 0
-    let moveY = 0
-
-    if (!gameover) {  
-        keyHolds.forEach((key, keyIndex) => {
-            switch(key) {
-                case 'Space': { 
-                    createProjectile(player, 5, 4)
-                    break
-                }
-                case 'ArrowRight':
-                case 'KeyD': moveX += playerSpeed
-                    break
-                case 'ArrowLeft':
-                case 'KeyA': moveX -= playerSpeed
-                    break
-                case 'ArrowUp':
-                case 'KeyW':  moveY -= playerSpeed
-                    break 
-                case 'ArrowDown':
-                case 'KeyS':  moveY += playerSpeed
-                break
-                default: 
-                    break
-            }
-        })
-        player.update(ctx, moveX, moveY);
-    } 
-})
-
-addEventListener('keyup', (e) => {
-
-    let index = keyHolds.findIndex(ele => ele === e.code)
-    keyHolds.splice(index, 1)
-    console.log(e.code, 'up', keyHolds)
-    player.update(ctx, 0, 0);
-                
-        
-    
-})
 
 animate()
 spawnEnemies()
