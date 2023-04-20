@@ -235,9 +235,7 @@ const screenEdgeDetection = (entities, canvasWidth, canvasHeight) => {
                 ent.x + ent.radius > canvasWidth) ||
             (ent.y - ent.radius < -100 || 
                 ent.y + ent.radius > canvasHeight)) 
-            setTimeout(() => {
-                entities.splice(i, 1)
-            }, 0)
+            setTimeout(() => entities.splice , 0, (i, 1))
     })
 }
 
