@@ -285,7 +285,7 @@ const enemyManager = (enemies) => {
             background-color: rgba(255, 255, 255, 0.6);
             border-radius: 5px;
             padding: 50px;
-            gap: 50px;
+            gap: 50px;git 
         `;
 
       const endScreenText = document.createElement("h2");
