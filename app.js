@@ -265,20 +265,42 @@ const enemyManager = (enemies) => {
       // Create end screen
 
       const endScreenContainer = document.createElement("div");
-      endScreenContainer.style.cssText =
-        "position:absolute;width:100%;height:100%;z-index:100;top:0;left:0;display:grid;place-items:center;";
+      endScreenContainer.style.cssText = `
+            position:absolute;
+            width:100%;
+            height:100%;
+            z-index:100;
+            top:0;
+            left:0;
+            display:grid;
+            place-items:center;
+      `;
 
       const endScreen = document.createElement("div");
-      endScreen.style.cssText =
-        "display:grid;place-items:center;width:300px;height:150px;";
+      endScreen.style.cssText = `
+            display: grid;
+            place-items: center;
+            width: 30%;
+            height: 25%;
+            background-color: rgba(255, 255, 255, 0.6);
+            border-radius: 5px;
+            padding: 50px;
+            gap: 50px;
+        `;
 
       const endScreenText = document.createElement("h2");
       endScreenText.textContent = "Game Over!";
-      endScreenText.style.cssText = "color:red;z-index:101;";
+      endScreenText.style.cssText = "z-index:101;";
 
       const restartButton = document.createElement("button");
-      restartButton.textContent = "Play again?";
-      restartButton.style.cssText = "z-index:101;";
+      restartButton.textContent = "Play Again";
+      restartButton.style.cssText = `
+            z-index: 101;
+            border: none;
+            border-radius:3px;
+            padding:10px 25px;
+            text-weight: bold;
+        `;
       restartButton.addEventListener("click", () => window.location.reload());
 
       endScreen.appendChild(endScreenText);
