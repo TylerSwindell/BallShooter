@@ -48,7 +48,7 @@ let gameover = false;
 // Scoring render
 function drawScoring() {
   ctx.font = "25px sans-serif";
-  const scoreText = `Score: ${player.killCount}`;
+  const scoreText = `Score: ${player.killCount} 123`;
   const scoreWidth = ctx.measureText(scoreText).width;
 
   const score = {
